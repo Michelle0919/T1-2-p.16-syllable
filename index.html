@@ -360,6 +360,10 @@
   </div>
 
   <script>
+    const LETICIA_AUDIO_URL = "https://raw.githubusercontent.com/Michelle0919/T1-2-p.16-syllable/main/Leticia.mp3";
+    let leticiaAudio = new Audio(LETICIA_AUDIO_URL);
+    leticiaAudio.preload = "auto";
+
     const boyAvatar = `data:image/svg+xml;utf8,
     <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'>
       <rect width='200' height='200' rx='100' fill='%23dbeafe'/>
@@ -468,8 +472,17 @@
     const breakOverlay = document.getElementById("breakOverlay");
     const breakCountdown = document.getElementById("breakCountdown");
 
-    function speak(text) {
-      if (!("speechSynthesis" in window)) return;
+    function stopAllAudio() {
+      window.speechSynthesis?.cancel();
+      leticiaAudio.pause();
+      leticiaAudio.currentTime = 0;
+    }
+
+    function speak(text, onEnd = null) {
+      if (!("speechSynthesis" in window)) {
+        if (typeof onEnd === "function") onEnd();
+        return;
+      }
 
       window.speechSynthesis.cancel();
 
@@ -485,7 +498,47 @@
         voices.find(v => v.lang.startsWith("en"));
 
       if (englishVoice) utterance.voice = englishVoice;
+
+      if (typeof onEnd === "function") {
+        utterance.onend = onEnd;
+        utterance.onerror = onEnd;
+      }
+
       window.speechSynthesis.speak(utterance);
+    }
+
+    function playLeticiaAudio() {
+      window.speechSynthesis?.cancel();
+      leticiaAudio.pause();
+      leticiaAudio.currentTime = 0;
+
+      return leticiaAudio.play().catch(() => {
+        speak("Leticia");
+      });
+    }
+
+    function speakWordOnly(word) {
+      stopAllAudio();
+
+      if (word === "Leticia") {
+        playLeticiaAudio();
+        return;
+      }
+
+      speak(word);
+    }
+
+    function speakCorrectSentence(item) {
+      stopAllAudio();
+
+      if (item.word === "Leticia") {
+        speak("She's", () => {
+          playLeticiaAudio();
+        });
+        return;
+      }
+
+      speak(item.sentence);
     }
 
     if (window.speechSynthesis) {
@@ -575,7 +628,7 @@
 
     function loadQuestion() {
       clearInterval(timer);
-      window.speechSynthesis.cancel();
+      stopAllAudio();
 
       isLocked = false;
       currentWord = pickWord();
@@ -621,7 +674,7 @@
       }
 
       setTimeout(() => {
-        speak(currentWord.word);
+        speakWordOnly(currentWord.word);
       }, 450);
 
       startTimer();
@@ -710,7 +763,7 @@
       feedbackAvatar.src = getAvatar(currentWord.gender);
       feedbackPoints.textContent = `+${points} Points`;
 
-      speak(currentWord.sentence);
+      speakCorrectSentence(currentWord);
 
       setTimeout(() => {
         feedbackOverlay.classList.add("hidden");
@@ -795,7 +848,7 @@
 
     function restartGame() {
       clearInterval(timer);
-      window.speechSynthesis.cancel();
+      stopAllAudio();
 
       teams = [];
       currentTeamIndex = 0;
@@ -819,7 +872,7 @@
 
     speakBtn.addEventListener("click", () => {
       if (currentWord) {
-        speak(currentWord.word);
+        speakWordOnly(currentWord.word);
       }
     });
 
